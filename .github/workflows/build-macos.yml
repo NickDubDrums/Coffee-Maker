@@ -1,0 +1,92 @@
+name: Build macOS Universal Binary
+
+on:
+  push:
+    branches: [ main ]
+    tags:     [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-macos:
+    name: macOS Universal Binary (VST3 + AU)
+    runs-on: macos-14        # Apple Silicon runner — supports both arm64 and x86_64
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ── Xcode (macOS 14 runner ships with Xcode 15.x — no install needed) ──
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      # ── CMake (pre-installed on macos-14; ensure ≥ 3.22) ───────────────────
+      - name: Verify CMake version
+        run: cmake --version
+
+      # ── Configure ───────────────────────────────────────────────────────────
+      # FetchContent downloads JUCE 8.0.8 automatically.
+      # Universal Binary: arm64 + x86_64, deployment target macOS 11.
+      - name: Configure CMake
+        run: |
+          cmake -B build-mac \
+                -G Xcode \
+                -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+                -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+
+      # ── Build ────────────────────────────────────────────────────────────────
+      - name: Build Release
+        run: |
+          cmake --build build-mac \
+                --config Release \
+                --parallel $(sysctl -n hw.logicalcpu)
+
+      # ── Verify lipo (both arches present) ────────────────────────────────────
+      - name: Verify Universal Binary
+        run: |
+          VST3=$(find build-mac -name "*.vst3" -type d | head -1)
+          if [ -n "$VST3" ]; then
+            BINARY=$(find "$VST3" -type f -name "Coffee_Maker" | head -1)
+            if [ -n "$BINARY" ]; then
+              echo "Checking: $BINARY"
+              lipo -info "$BINARY"
+            fi
+          fi
+
+      # ── Collect artefacts ────────────────────────────────────────────────────
+      - name: Collect plugin bundles
+        run: |
+          mkdir -p dist
+          find build-mac -name "*.vst3" -type d | xargs -I{} cp -r {} dist/ 2>/dev/null || true
+          find build-mac -name "*.component" -type d | xargs -I{} cp -r {} dist/ 2>/dev/null || true
+          echo "Contents of dist/:"
+          ls -la dist/
+
+      # ── Zip ─────────────────────────────────────────────────────────────────
+      - name: Create release archive
+        run: |
+          cd dist
+          zip -r ../Coffee_Maker-macOS-universal.zip .
+          cd ..
+          echo "Archive size: $(du -sh Coffee_Maker-macOS-universal.zip | cut -f1)"
+
+      # ── Upload artefact ──────────────────────────────────────────────────────
+      - name: Upload build artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coffee_Maker-macOS-universal
+          path: Coffee_Maker-macOS-universal.zip
+          retention-days: 30
+
+      # ── Create GitHub release on tag push ────────────────────────────────────
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Coffee_Maker-macOS-universal.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,46 @@
+# ── Build directories ─────────────────────────────────────────────
+build/
+builds/
+cmake-build-*/
+out/
+
+# ── CMake generated ───────────────────────────────────────────────
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
+
+# ── JUCE generated ────────────────────────────────────────────────
+JuceLibraryCode/
+
+# ── IDE / Editor ──────────────────────────────────────────────────
+.vs/
+.vscode/
+*.suo
+*.user
+*.sdf
+*.opensdf
+*.VC.db
+.idea/
+*.xcodeproj/
+*.xcworkspace/
+*.pbxproj
+
+# ── Compiled plugin artifacts ─────────────────────────────────────
+*.vst3
+*.component
+*.aaxplugin
+*.dll
+*.so
+*.dylib
+
+# ── OS junk ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs & temp ───────────────────────────────────────────────────
+*.log
+*.tmp
