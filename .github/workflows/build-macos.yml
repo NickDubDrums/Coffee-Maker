@@ -1,11 +1,7 @@
 name: Build macOS Universal Binary
 
 on:
-  push:
-    branches: [ main ]
-    tags:     [ 'v*' ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-macos:
@@ -15,7 +11,7 @@ jobs:
     steps:
       # ── Checkout ────────────────────────────────────────────────────────────
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
@@ -75,7 +71,7 @@ jobs:
 
       # ── Upload artefact ──────────────────────────────────────────────────────
       - name: Upload build artefact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Coffee_Maker-macOS-universal
           path: Coffee_Maker-macOS-universal.zip
