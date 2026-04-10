@@ -2,7 +2,7 @@
 
 > **Professional Mastering. Guaranteed Louder.**
 
-Plugin VST3/AU meme per mastering engineers. Satura, alza di +4.5 dB e limita hard. Impilalo più volte per risultati sempre più devastanti.
+Plugin VST3/AU per mastering engineers. Satura, alza di +4.5 dB e limita hard. Impilalo più volte per risultati sempre più devastanti.
 
 ---
 
