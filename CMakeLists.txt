@@ -14,6 +14,16 @@ else()
     message(WARNING "ASIO SDK non trovato in ${JUCE_ASIO_SDK_PATH} — build senza ASIO")
 endif()
 
+# ── AAX SDK ───────────────────────────────────────────────────────────────────
+set(AAX_SDK_PATH "J:/Dub Studio/Programmi/SDKs/aax-sdk-2-9-0"
+    CACHE PATH "Percorso all'AAX SDK")
+
+if(EXISTS "${AAX_SDK_PATH}/Interfaces/AAX.h")
+    message(STATUS "AAX SDK trovato in: ${AAX_SDK_PATH}")
+else()
+    message(WARNING "AAX SDK non trovato in ${AAX_SDK_PATH} — build senza AAX")
+endif()
+
 # ── JUCE locale / FetchContent fallback (per CI macOS) ───────────────────────
 set(JUCE_PATH "J:/Dub Studio/Programmi/juce-8.0.8/JUCE"
     CACHE PATH "Percorso a JUCE locale")
@@ -32,13 +42,18 @@ else()
     FetchContent_MakeAvailable(JUCE)
 endif()
 
+# ── AAX SDK path — deve essere chiamato DOPO aver incluso JUCE ────────────────
+if(EXISTS "${AAX_SDK_PATH}/Interfaces/AAX.h")
+    juce_set_aax_sdk_path("${AAX_SDK_PATH}")
+endif()
+
 # ── Plugin target ─────────────────────────────────────────────────────────────
 juce_add_plugin(Coffee_Maker
     COMPANY_NAME             "Coffee Music"
     BUNDLE_ID                "com.CoffeeMusic.CoffeeMaker"
     PLUGIN_MANUFACTURER_CODE Coff
     PLUGIN_CODE              CfMk
-    FORMATS                  VST3 AU
+    FORMATS                  VST3 AU AAX
     PRODUCT_NAME             "Coffee Maker"
     DESCRIPTION              "Professional Mastering. Guaranteed Louder."
     IS_SYNTH                 FALSE
@@ -46,7 +61,8 @@ juce_add_plugin(Coffee_Maker
     NEEDS_MIDI_OUTPUT        FALSE
     IS_MIDI_EFFECT           FALSE
     VST3_CATEGORIES          "Fx"
-    PLUGIN_CHANNEL_CONFIGURATIONS "{1,1},{2,2}"
+    AAX_CATEGORY             AAX_ePlugInCategory_Dynamics
+    #PLUGIN_CHANNEL_CONFIGURATIONS "{1,1},{2,2}"
     COPY_PLUGIN_AFTER_BUILD  FALSE
 )
 
