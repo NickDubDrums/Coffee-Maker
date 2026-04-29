@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-macos:
-    name: macOS Universal Binary (VST3 + AU)
+    name: macOS Universal Binary (VST3 + AU + AAX)
     runs-on: macos-14        # Apple Silicon runner — supports both arm64 and x86_64
 
     steps:
@@ -15,23 +15,34 @@ jobs:
         with:
           fetch-depth: 1
 
-      # ── Xcode (macOS 14 runner ships with Xcode 15.x — no install needed) ──
+      # ── Xcode ───────────────────────────────────────────────────────────────
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
 
-      # ── CMake (pre-installed on macos-14; ensure ≥ 3.22) ───────────────────
+      # ── CMake ───────────────────────────────────────────────────────────────
       - name: Verify CMake version
         run: cmake --version
 
+      # ── Download AAX SDK from private repo ──────────────────────────────────
+      - name: Download AAX SDK
+        run: |
+          curl -L \
+            -H "Authorization: token ${{ secrets.SDK_REPO_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3.raw" \
+            "https://api.github.com/repos/NickDubDrums/dev-sdks/contents/aax-sdk-2-9-0.zip" \
+            -o aax-sdk.zip
+          unzip -q aax-sdk.zip -d aax-sdk
+          echo "AAX SDK contents:"
+          ls aax-sdk/
+
       # ── Configure ───────────────────────────────────────────────────────────
-      # FetchContent downloads JUCE 8.0.8 automatically.
-      # Universal Binary: arm64 + x86_64, deployment target macOS 11.
       - name: Configure CMake
         run: |
           cmake -B build-mac \
                 -G Xcode \
                 -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-                -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+                -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+                -DAAX_SDK_PATH="${{ github.workspace }}/aax-sdk/aax-sdk-2-9-0"
 
       # ── Build ────────────────────────────────────────────────────────────────
       - name: Build Release
@@ -40,14 +51,22 @@ jobs:
                 --config Release \
                 --parallel $(sysctl -n hw.logicalcpu)
 
-      # ── Verify lipo (both arches present) ────────────────────────────────────
+      # ── Verify Universal Binary ───────────────────────────────────────────────
       - name: Verify Universal Binary
         run: |
           VST3=$(find build-mac -name "*.vst3" -type d | head -1)
           if [ -n "$VST3" ]; then
-            BINARY=$(find "$VST3" -type f -name "Coffee_Maker" | head -1)
+            BINARY=$(find "$VST3" -type f | head -1)
             if [ -n "$BINARY" ]; then
-              echo "Checking: $BINARY"
+              echo "Checking VST3: $BINARY"
+              lipo -info "$BINARY"
+            fi
+          fi
+          AAX=$(find build-mac -name "*.aaxplugin" -type d | head -1)
+          if [ -n "$AAX" ]; then
+            BINARY=$(find "$AAX" -type f -name "*.aaxplugin" | head -1)
+            if [ -n "$BINARY" ]; then
+              echo "Checking AAX: $BINARY"
               lipo -info "$BINARY"
             fi
           fi
@@ -56,8 +75,9 @@ jobs:
       - name: Collect plugin bundles
         run: |
           mkdir -p dist
-          find build-mac -name "*.vst3" -type d | xargs -I{} cp -r {} dist/ 2>/dev/null || true
-          find build-mac -name "*.component" -type d | xargs -I{} cp -r {} dist/ 2>/dev/null || true
+          find build-mac -name "*.vst3"       -type d | xargs -I{} cp -r {} dist/ 2>/dev/null || true
+          find build-mac -name "*.component"  -type d | xargs -I{} cp -r {} dist/ 2>/dev/null || true
+          find build-mac -name "*.aaxplugin"  -type d | xargs -I{} cp -r {} dist/ 2>/dev/null || true
           echo "Contents of dist/:"
           ls -la dist/
 
