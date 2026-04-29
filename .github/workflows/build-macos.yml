@@ -54,21 +54,19 @@ jobs:
       # ── Verify Universal Binary ───────────────────────────────────────────────
       - name: Verify Universal Binary
         run: |
-          VST3=$(find build-mac -name "*.vst3" -type d | head -1)
+          VST3=$(find build-mac -path "*/VST3/*.vst3/Contents/MacOS/*" -type f | head -1)
           if [ -n "$VST3" ]; then
-            BINARY=$(find "$VST3" -type f | head -1)
-            if [ -n "$BINARY" ]; then
-              echo "Checking VST3: $BINARY"
-              lipo -info "$BINARY"
-            fi
+            echo "Checking VST3: $VST3"
+            lipo -info "$VST3"
+          else
+            echo "VST3 binary not found"
           fi
-          AAX=$(find build-mac -name "*.aaxplugin" -type d | head -1)
+          AAX=$(find build-mac -path "*/AAX/*.aaxplugin/Contents/MacOS/*" -type f | head -1)
           if [ -n "$AAX" ]; then
-            BINARY=$(find "$AAX" -type f -name "*.aaxplugin" | head -1)
-            if [ -n "$BINARY" ]; then
-              echo "Checking AAX: $BINARY"
-              lipo -info "$BINARY"
-            fi
+            echo "Checking AAX: $AAX"
+            lipo -info "$AAX"
+          else
+            echo "AAX binary not found"
           fi
 
       # ── Collect artefacts ────────────────────────────────────────────────────
